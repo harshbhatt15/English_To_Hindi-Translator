@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Translator</title>
+
+<style>
+body {
+    font-family: Arial;
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color: white;
+    padding: 20px;
+}
+
+.container {
+    max-width: 900px;
+    margin: auto;
+}
+
+textarea {
+    width: 100%;
+    padding: 10px;
+    font-size: 16px;
+}
+
+button {
+    margin-top: 10px;
+    padding: 10px 20px;
+    cursor: pointer;
+}
+
+#output {
+    background: white;
+    color: black;
+    padding: 15px;
+    margin-top: 15px;
+    min-height: 100px;
+    white-space: pre-wrap;
+}
+
+.history-item {
+    background: white;
+    color: black;
+    margin-top: 10px;
+    padding: 10px;
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+    <h1>🌐 English → Hindi Translator</h1>
+
+    <textarea id="inputText" rows="4" placeholder="Enter text..."></textarea><br>
+
+    <button onclick="translateText()">Translate</button>
+    <button onclick="clearInput()">Clear</button>
+    <button onclick="loadSample()">Sample</button>
+
+    <div id="output">Translation will appear here...</div>
+
+    <h3>History</h3>
+    <button onclick="clearHistory()">Clear History</button>
+    <button onclick="exportHistory()">Export CSV</button>
+
+    <div id="history"></div>
+</div>
+
+<script>
+async function translateText() {
+    const text = document.getElementById('inputText').value;
+
+    if (!text.trim()) {
+        alert("Enter text first!");
+        return;
+    }
+
+    document.getElementById('output').innerHTML = "⏳ Translating...";
+
+    try {
+        const response = await fetch('/translate', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ text })
+        });
+
+        let data;
+
+        try {
+            data = await response.json();
+        } catch (err) {
+            document.getElementById('output').innerHTML =
+                "❌ Server returned invalid response";
+            return;
+        }
+
+        if (response.ok && data.success) {
+            document.getElementById('output').innerHTML =
+                data.hindi || "⚠️ No translation generated";
+            loadHistory();
+        } else {
+            document.getElementById('output').innerHTML =
+                `<span style="color:red;">❌ ${data.error}</span>`;
+        }
+
+    } catch (err) {
+        document.getElementById('output').innerHTML =
+            `<span style="color:red;">❌ ${err.message}</span>`;
+    }
+}
+
+async function loadHistory() {
+    const res = await fetch('/history');
+    const history = await res.json();
+
+    const div = document.getElementById('history');
+
+    if (!history.length) {
+        div.innerHTML = "No history yet";
+        return;
+    }
+
+    div.innerHTML = history.map(h => `
+        <div class="history-item">
+            <b>EN:</b> ${h.english}<br>
+            <b>HI:</b> ${h.hindi}
+        </div>
+    `).join('');
+}
+
+async function clearHistory() {
+    await fetch('/clear_history', {method:'POST'});
+    loadHistory();
+}
+
+function exportHistory() {
+    window.location.href = '/export_history';
+}
+
+function clearInput() {
+    document.getElementById('inputText').value = '';
+}
+
+function loadSample() {
+    document.getElementById('inputText').value = "How are you?";
+}
+
+document.getElementById('inputText').addEventListener('keydown', function(e) {
+    if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        translateText();
+    }
+});
+
+loadHistory();
+</script>
+
+</body>
+</html>

@@ -1,0 +1,12 @@
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.env
+venv/
+.env/
+
+# Model files (optional - large files)
+*.h5
+*.pickle
+*.csv
