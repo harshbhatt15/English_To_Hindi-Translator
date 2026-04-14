@@ -115,9 +115,3 @@ http://127.0.0.1:5000/
 ## 👨‍💻 Author
 
 **Harsh Bhatt**
-
----
-
-## ⭐ Show your support
-
-If you like this project, give it a ⭐ on GitHub!
