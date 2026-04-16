@@ -107,7 +107,6 @@ http://127.0.0.1:5000/
 
 * 🌍 Support multiple languages
 * 🎤 Speech-to-text input
-* 🔊 Text-to-speech output
 * ☁️ Deployment on cloud (Render / AWS)
 
 ---
