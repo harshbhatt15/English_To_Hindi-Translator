@@ -106,7 +106,6 @@ Add screenshots here (UI / translation output)
 ## 📈 Future Improvements
 
 * 🌍 Support multiple languages
-* 🎤 Speech-to-text input
 * ☁️ Deployment on cloud (Render / AWS)
 
 ---
