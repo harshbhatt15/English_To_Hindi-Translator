@@ -7,6 +7,4 @@ venv/
 .env/
 
 # Model files (optional - large files)
-*.h5
-*.pickle
 *.csv
