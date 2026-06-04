@@ -25,27 +25,6 @@ A Deep Learning based English → Hindi Translator built using Seq2Seq LSTM arch
 
 ---
 
-## 📂 Project Structure
-
-```
-English_To_Hindi_Translator/
-│
-├── app.py
-├── templates/
-│   └── index.html
-├── saved_models/
-│   ├── encoder_model.h5
-│   ├── decoder_model.h5
-│   ├── input_tokenizer.pickle
-│   ├── output_tokenizer.pickle
-│   └── config.pickle
-├── main.ipynb
-├── training_history.png
-└── README.md
-```
-
----
-
 ## ▶️ How to Run
 
 ### 1️⃣ Clone the repository
