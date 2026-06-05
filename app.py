@@ -39,8 +39,7 @@ def load_models():
     with open(os.path.join(MODELS_DIR, "output_tokenizer.pickle"), "rb") as f:
         output_tokenizer = pickle.load(f)
 
-    with open(os.path.join(MODELS_DIR, "config.pickle"), "rb") as f:
-        config = pickle.load(f)
+    config = ModelConfig()
 
     print("✅ Models loaded successfully!")
 
