@@ -33,15 +33,6 @@ A Deep Learning based English → Hindi Translator built using Seq2Seq LSTM arch
 git clone https://github.com/YOUR_USERNAME/English_To_Hindi-Translator.git
 cd English_To_Hindi-Translator
 ```
-
----
-
-### 2️⃣ Install dependencies
-
-```
-pip install -r requirements.txt
-```
-
 ---
 
 ### 3️⃣ Run the Flask app
