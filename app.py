@@ -7,6 +7,13 @@ import re
 from datetime import datetime
 import pandas as pd
 import os
+import time
+import tensorflow as tf
+
+os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"
+
+tf.config.threading.set_inter_op_parallelism_threads(1)
+tf.config.threading.set_intra_op_parallelism_threads(1)
 
 # ================= APP =================
 app = Flask(__name__)
@@ -69,6 +76,8 @@ def translate(
     output_tokenizer,
     config,
 ):
+    start_time = time.time()
+
     cleaned = clean_text(text)
 
     sequence = input_tokenizer.texts_to_sequences([cleaned])
@@ -79,7 +88,11 @@ def translate(
         padding="post"
     )
 
+    print("🔹 Encoder prediction started")
+
     states_value = encoder_model.predict(padded, verbose=0)
+
+    print("🔹 Encoder prediction finished")
 
     if isinstance(states_value, tuple):
         states_value = list(states_value)
@@ -123,7 +136,14 @@ def translate(
 
         states_value = [h, c]
 
-    return " ".join(decoded_sentence)
+    result = " ".join(decoded_sentence)
+
+    print(
+        f"⏱ Translation completed in "
+        f"{time.time() - start_time:.2f} sec"
+    )
+
+    return result
 
 
 # ================= INIT =================
@@ -163,6 +183,8 @@ def translate_api():
                 "error": "No text provided"
             }), 400
 
+        print(f"📥 Translation request: {english_text}")
+
         hindi_text = translate(
             english_text,
             encoder_model,
@@ -171,6 +193,8 @@ def translate_api():
             output_tokenizer,
             config,
         )
+
+        print(f"📤 Translation result: {hindi_text}")
 
         # Save history
         history = session.get("history", [])
