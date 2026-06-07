@@ -6,5 +6,5 @@ __pycache__/
 venv/
 .env/
 
-# Model files (optional - large files)
+# Model files (optional -- large files)
 *.csv

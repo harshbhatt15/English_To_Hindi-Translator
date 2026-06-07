@@ -1,29 +1,26 @@
-from flask import Flask, render_template, request, jsonify, session, send_file
+import streamlit as st
 import pickle
 import numpy as np
+import tensorflow as tf
 from tensorflow.keras.models import load_model
 from tensorflow.keras.preprocessing.sequence import pad_sequences
-import re
-from datetime import datetime
-import pandas as pd
 import os
+import re
 import time
-import tensorflow as tf
 
+# Reduce TensorFlow logs
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"
 
+# TensorFlow optimization
 tf.config.threading.set_inter_op_parallelism_threads(1)
 tf.config.threading.set_intra_op_parallelism_threads(1)
 
-# ================= APP =================
-app = Flask(__name__)
-app.secret_key = os.environ.get("SECRET_KEY", "super-secret-key")
-
+# Paths
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 MODELS_DIR = os.path.join(BASE_DIR, "saved_models")
 
 
-# ================= MODEL CONFIG =================
+# ================= CONFIG =================
 class ModelConfig:
     MAX_SEQ_LEN_INPUT = 20
     MAX_SEQ_LEN_OUTPUT = 20
@@ -31,6 +28,7 @@ class ModelConfig:
 
 
 # ================= LOAD MODELS =================
+@st.cache_resource
 def load_models():
     encoder_model = load_model(
         os.path.join(MODELS_DIR, "encoder_model.h5")
@@ -40,15 +38,19 @@ def load_models():
         os.path.join(MODELS_DIR, "decoder_model.h5")
     )
 
-    with open(os.path.join(MODELS_DIR, "input_tokenizer.pickle"), "rb") as f:
+    with open(
+        os.path.join(MODELS_DIR, "input_tokenizer.pickle"),
+        "rb"
+    ) as f:
         input_tokenizer = pickle.load(f)
 
-    with open(os.path.join(MODELS_DIR, "output_tokenizer.pickle"), "rb") as f:
+    with open(
+        os.path.join(MODELS_DIR, "output_tokenizer.pickle"),
+        "rb"
+    ) as f:
         output_tokenizer = pickle.load(f)
 
     config = ModelConfig()
-
-    print("✅ Models loaded successfully!")
 
     return (
         encoder_model,
@@ -76,8 +78,6 @@ def translate(
     output_tokenizer,
     config,
 ):
-    start_time = time.time()
-
     cleaned = clean_text(text)
 
     sequence = input_tokenizer.texts_to_sequences([cleaned])
@@ -85,14 +85,13 @@ def translate(
     padded = pad_sequences(
         sequence,
         maxlen=config.MAX_SEQ_LEN_INPUT,
-        padding="post"
+        padding="post",
     )
 
-    print("🔹 Encoder prediction started")
-
-    states_value = encoder_model.predict(padded, verbose=0)
-
-    print("🔹 Encoder prediction finished")
+    states_value = encoder_model.predict(
+        padded,
+        verbose=0
+    )
 
     if isinstance(states_value, tuple):
         states_value = list(states_value)
@@ -103,7 +102,9 @@ def translate(
     start_token = output_tokenizer.word_index.get("start")
 
     if start_token is None:
-        start_token = list(output_tokenizer.word_index.values())[0]
+        start_token = list(
+            output_tokenizer.word_index.values()
+        )[0]
 
     target_seq = np.zeros((1, 1))
     target_seq[0, 0] = start_token
@@ -123,7 +124,7 @@ def translate(
 
         sampled_word = output_tokenizer.index_word.get(
             sampled_token_index,
-            ""
+            "",
         )
 
         if sampled_word in ["end", ""]:
@@ -136,139 +137,56 @@ def translate(
 
         states_value = [h, c]
 
-    result = " ".join(decoded_sentence)
-
-    print(
-        f"⏱ Translation completed in "
-        f"{time.time() - start_time:.2f} sec"
-    )
-
-    return result
+    return " ".join(decoded_sentence)
 
 
-# ================= INIT =================
-print("🚀 Loading models...")
+# ================= STREAMLIT UI =================
+st.set_page_config(
+    page_title="English → Hindi Translator",
+    page_icon="🌐",
+    layout="centered",
+)
 
-(
-    encoder_model,
-    decoder_model,
-    input_tokenizer,
-    output_tokenizer,
-    config,
-) = load_models()
+st.title("🌐 English → Hindi Translator")
+st.write("Translate English text into Hindi")
 
+with st.spinner("Loading models..."):
+    (
+        encoder_model,
+        decoder_model,
+        input_tokenizer,
+        output_tokenizer,
+        config,
+    ) = load_models()
 
-# ================= ROUTES =================
-@app.route("/")
-def index():
-    return render_template("index.html")
+text = st.text_area(
+    "Enter English Text",
+    height=150,
+    placeholder="Example: What are you doing?"
+)
 
+if st.button("Translate"):
 
-@app.route("/translate", methods=["POST"])
-def translate_api():
-    try:
-        data = request.get_json()
+    if text.strip():
 
-        if not data:
-            return jsonify({
-                "success": False,
-                "error": "Invalid JSON"
-            }), 400
+        with st.spinner("Translating..."):
 
-        english_text = data.get("text", "").strip()
+            start = time.time()
 
-        if not english_text:
-            return jsonify({
-                "success": False,
-                "error": "No text provided"
-            }), 400
+            result = translate(
+                text,
+                encoder_model,
+                decoder_model,
+                input_tokenizer,
+                output_tokenizer,
+                config,
+            )
 
-        print(f"📥 Translation request: {english_text}")
+            st.success(result)
 
-        hindi_text = translate(
-            english_text,
-            encoder_model,
-            decoder_model,
-            input_tokenizer,
-            output_tokenizer,
-            config,
-        )
+            st.caption(
+                f"Completed in {time.time() - start:.2f} seconds"
+            )
 
-        print(f"📤 Translation result: {hindi_text}")
-
-        # Save history
-        history = session.get("history", [])
-
-        history.append({
-            "english": english_text,
-            "hindi": hindi_text,
-            "timestamp": datetime.now().strftime(
-                "%Y-%m-%d %H:%M:%S"
-            ),
-        })
-
-        session["history"] = history
-
-        return jsonify({
-            "english": english_text,
-            "hindi": hindi_text,
-            "success": True,
-        })
-
-    except Exception as e:
-        print("❌ TRANSLATE ERROR:", str(e))
-
-        return jsonify({
-            "success": False,
-            "error": str(e)
-        }), 500
-
-
-@app.route("/history")
-def get_history():
-    return jsonify(session.get("history", []))
-
-
-@app.route("/clear_history", methods=["POST"])
-def clear_history():
-    session["history"] = []
-
-    return jsonify({
-        "success": True
-    })
-
-
-@app.route("/export_history")
-def export_history():
-    history = session.get("history", [])
-
-    if not history:
-        return jsonify({
-            "success": False,
-            "error": "No history available"
-        }), 400
-
-    df = pd.DataFrame(history)
-
-    file_path = os.path.join(
-        BASE_DIR,
-        "translations.csv"
-    )
-
-    df.to_csv(file_path, index=False)
-
-    return send_file(
-        file_path,
-        as_attachment=True
-    )
-
-
-# ================= RUN =================
-if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 5000))
-
-    app.run(
-        host="0.0.0.0",
-        port=port,
-        debug=False
-    )
+    else:
+        st.warning("Please enter some text.")
